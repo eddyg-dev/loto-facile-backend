@@ -8,24 +8,21 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-// app.use(express.json());
-// app.use(bodyParser.json({ limit: "200mb" })); // Adjust limit as needed
-// app.use(bodyParser.urlencoded({ limit: "200mb", extended: true }));
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ limit: "20mb", extended: true }));
+});
 const openai = new OpenAI();
 
 app.get("/test", (req, res) => {
   res.send("GET request to the /test endpoint is successful!");
 });
 
-app.post("/analyze-image", async (req, res) => {
+app.post("/analyze", upload.single("file"), async (req, res) => {
   try {
-    // Check if base64 image data is included in the request body
-    const { base64Image } = req.body;
+    const { fileType, base64Image } = req.body;
 
-    if (!base64Image) {
-      return res.status(400).json({ error: "Base64 image data is required" });
+    if (!fileType) {
+      return res.status(400).json({ error: "fileType is required" });
     }
 
     // const response = await openai.chat.completions.create({
@@ -60,10 +57,10 @@ app.post("/analyze-image", async (req, res) => {
     const jsonResponse = cleanedJsonString ? JSON.parse(cleanedJsonString) : {};
     res.json(jsonResponse);
   } catch (error) {
-    console.error("Error processing image:", error);
-    res.status(500).send({ error: "Error processing image" });
+    console.error("Failed to process text data:", error);
+    res.status(500).send({ error: "Failed to process text data" });
   }
-});
+}
 
 // Start server
 app.listen(port, () => {
