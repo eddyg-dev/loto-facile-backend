@@ -14,6 +14,11 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 const openai = new OpenAI();
+
+app.get("/test", (req, res) => {
+  res.send("GET request to the /test endpoint is successful!");
+});
+
 app.post("/analyze-image", async (req, res) => {
   try {
     // Check if base64 image data is included in the request body
@@ -50,11 +55,8 @@ app.post("/analyze-image", async (req, res) => {
     // const responseData = response.choices[0]?.message?.content;
     const responseData =
       '```json\n[\n  {\n    "numero": 100001,\n    "quines": [\n      [7, 13, 46, 50, 89],\n      [12, 34, 40, 51, 78],\n      [6, 23, 68, 77, 80]\n    ]\n  },\n  {\n    "numero": 100002,\n    "quines": [\n      [4, 16, 24, 67, 82],\n      [36, 48, 64, 71, 85],\n      [1, 17, 31, 59, 75]\n    ]\n  }\n]\n```';
-
     let cleanedJsonString = responseData?.replace(/^```json/, "").trim();
     cleanedJsonString = cleanedJsonString?.replace(/```$/, "").trim();
-    console.log("cleanedJsonString ", cleanedJsonString);
-
     const jsonResponse = cleanedJsonString ? JSON.parse(cleanedJsonString) : {};
     res.json(jsonResponse);
   } catch (error) {
