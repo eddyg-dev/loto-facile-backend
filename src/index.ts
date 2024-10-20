@@ -18,8 +18,7 @@ const upload = multer({ dest: "uploads/" });
 // Middleware pour analyser le JSON
 app.use(express.json({ limit: "20mb" })); // Limiter la taille du body à 20MB
 
-const lotoPrompt =
-  "Analyser cette image de grille de loto et renvoyer uniquement un tableau JSON avec les grilles trouvées. Chaque grille doit contenir 15 nombres répartis sur 3 lignes de 5 nombres chacune. Le tableau JSON doit avoir cette structure : [{numero: number, quines: [[number, number, number, number, number], [number, number, number, number, number], [number, number, number, number, number]]}]";
+const lotoPrompt: string = process.env.LOTO_PROMPT || "";
 
 // Endpoint pour tester l'API
 app.get("/test", (req, res) => {
@@ -38,6 +37,7 @@ app.post("/analyze", async (req, res) => {
     // Envoyer l'image encodée en base64 et le prompt à GPT-4 pour analyse
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Modèle GPT-4
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
@@ -57,9 +57,14 @@ app.post("/analyze", async (req, res) => {
       ],
     });
 
-    // Récupérer et envoyer la réponse
-    const result = response.choices[0];
-    res.json({ result });
+    const result = response.choices[0]?.message?.content;
+
+    // Si le résultat est sous forme de chaîne JSON, parser pour être sûr que c'est un objet JSON
+    const parsedResult =
+      typeof result === "string" ? JSON.parse(result) : result;
+
+    // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
+    res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
   } catch (error) {
     console.error("Error processing image:", error);
     res.status(500).json({ error: "Error processing image" });
@@ -103,6 +108,7 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
     // Envoyer le texte extrait et le prompt à GPT-4 pour analyse
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
@@ -111,8 +117,14 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
       ],
     });
 
-    const result = response.choices[0];
-    res.json({ result });
+    const result = response.choices[0]?.message?.content;
+
+    // Si le résultat est sous forme de chaîne JSON, parser pour être sûr que c'est un objet JSON
+    const parsedResult =
+      typeof result === "string" ? JSON.parse(result) : result;
+
+    // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
+    res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
   } catch (error) {
     console.error("Error processing file:", error);
     res.status(500).json({ error: "Error processing file" });
