@@ -1,3 +1,4 @@
+import cors from "cors"; // Importer le middleware CORS
 import { parse } from "csv-parse"; // Pour traiter les CSV
 import dotenv from "dotenv";
 import express from "express";
@@ -17,6 +18,9 @@ const upload = multer({ dest: "uploads/" });
 
 // Middleware pour analyser le JSON
 app.use(express.json({ limit: "20mb" })); // Limiter la taille du body à 20MB
+
+// Middleware pour tout accepter avec CORS
+app.use(cors()); // Accepte toutes les requêtes cross-origin
 
 const lotoPrompt: string = process.env.LOTO_PROMPT || "";
 
