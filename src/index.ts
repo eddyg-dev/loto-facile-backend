@@ -2,6 +2,7 @@ import cors from "cors"; // Importer le middleware CORS
 import { parse } from "csv-parse"; // Pour traiter les CSV
 import dotenv from "dotenv";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import fs from "fs";
 import multer from "multer";
 import OpenAI from "openai";
@@ -19,10 +20,26 @@ const upload = multer({ dest: "uploads/" });
 // Middleware pour analyser le JSON
 app.use(express.json({ limit: "20mb" })); // Limiter la taille du body à 20MB
 
+// Limitation des requêtes (rate limiting)
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 50, // Maximum de 50 requêtes par minute par IP
+  message: { error: "Too many requests, please try again later." },
+});
+app.use(limiter);
+
 // Middleware pour tout accepter avec CORS
 app.use(cors()); // Accepte toutes les requêtes cross-origin
 
 const lotoPrompt: string = process.env.LOTO_PROMPT || "";
+
+app.use((req, res, next) => {
+  const apiKey = req.headers["x-api-key"];
+  if (apiKey !== process.env.API_SECRET) {
+    return res.status(403).json({ error: "Forbidden: Invalid API key" });
+  }
+  next();
+});
 
 // Endpoint pour tester l'API
 app.get("/test", (req, res) => {
@@ -70,7 +87,6 @@ app.post("/analyze", async (req, res) => {
     // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
     res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
   } catch (error) {
-    console.error("Error processing image:", error);
     res.status(500).json({ error: "Error processing image" });
   }
 });
@@ -130,7 +146,6 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
     // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
     res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
   } catch (error) {
-    console.error("Error processing file:", error);
     res.status(500).json({ error: "Error processing file" });
   }
 });
