@@ -33,11 +33,18 @@ app.use(cors()); // Accepte toutes les requêtes cross-origin
 
 const lotoPrompt: string = process.env.LOTO_PROMPT || "";
 
+console.log("Configuration initiale chargée");
+console.log(`Port configuré : ${port}`);
+console.log(`Prompt configuré : ${lotoPrompt ? "Oui" : "Non"}`);
+
 app.use((req, res, next) => {
+  console.log(`Nouvelle requête reçue : ${req.method} ${req.path}`);
   const apiKey = req.headers["x-api-key"];
   if (apiKey !== process.env.API_SECRET) {
+    console.warn(`Tentative d'accès non autorisée avec la clé : ${apiKey}`);
     return res.status(403).json({ error: "Forbidden: Invalid API key" });
   }
+  console.log("Authentification réussie");
   next();
 });
 
@@ -48,14 +55,15 @@ app.get("/test", (req, res) => {
 
 app.post("/analyze", async (req, res) => {
   try {
+    console.log("Nouvelle requête d'analyse d'image reçue");
     const { base64Image, fileType } = req.body;
 
-    // Vérification si base64Image et fileType sont présents
     if (!base64Image || fileType !== "image") {
+      console.error("Données d'image manquantes ou type de fichier incorrect");
       return res.status(400).json({ error: "Base64 image data is required" });
     }
 
-    // Envoyer l'image encodée en base64 et le prompt à GPT-4 pour analyse
+    console.log("Envoi de la requête à OpenAI...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Modèle GPT-4
       response_format: { type: "json_object" },
@@ -77,6 +85,7 @@ app.post("/analyze", async (req, res) => {
         },
       ],
     });
+    console.log("Réponse reçue d'OpenAI");
 
     const result = response.choices[0]?.message?.content;
 
@@ -87,6 +96,7 @@ app.post("/analyze", async (req, res) => {
     // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
     res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
   } catch (error) {
+    console.error("Erreur lors du traitement de l'image:", error);
     res.status(500).json({ error: "Error processing image" });
   }
 });
@@ -94,25 +104,34 @@ app.post("/analyze", async (req, res) => {
 // Nouveau endpoint pour traiter CSV, XLS et PDF
 app.post("/analyze-file", upload.single("file"), async (req, res) => {
   try {
+    console.log("Nouvelle requête d'analyse de fichier reçue");
     const { fileType } = req.body;
+    console.log(`Type de fichier : ${fileType}`);
 
     if (!req.file) {
+      console.error("Aucun fichier n'a été fourni");
       return res.status(400).json({ error: "File is required" });
     }
 
+    console.log(
+      `Fichier reçu : ${req.file.originalname}, taille : ${req.file.size} bytes`
+    );
     const filePath = req.file.path;
     let extractedText = "";
 
     // Traitement selon le type de fichier
     if (fileType === "pdf") {
+      console.log("Traitement du fichier PDF...");
       const pdfBuffer = fs.readFileSync(filePath);
       const pdfData = await pdfParse(pdfBuffer);
       extractedText = pdfData.text;
     } else if (fileType === "csv") {
+      console.log("Traitement du fichier CSV...");
       // Lecture du fichier CSV de manière asynchrone et stockage du contenu
       const csvData = fs.readFileSync(filePath);
       extractedText = (await parseCSVToText(csvData)) as string;
     } else if (fileType === "excel") {
+      console.log("Traitement du fichier Excel...");
       const workbook = xlsx.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
@@ -122,9 +141,7 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Unsupported file type" });
     }
 
-    // Suppression du fichier après traitement
-    fs.unlinkSync(filePath);
-
+    console.log("Envoi du texte extrait à OpenAI...");
     // Envoyer le texte extrait et le prompt à GPT-4 pour analyse
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -145,19 +162,26 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
 
     // Convertir en JSON compacté (sans retours à la ligne ni espaces inutiles)
     res.send(JSON.stringify(parsedResult, null, 0)); // Compactage du JSON
+
+    console.log("Suppression du fichier temporaire");
+    fs.unlinkSync(filePath);
   } catch (error) {
+    console.error("Erreur lors du traitement du fichier:", error);
     res.status(500).json({ error: "Error processing file" });
   }
 });
 
 // Fonction pour lire un fichier CSV et retourner son contenu en tant que texte
 function parseCSVToText(csvData: any) {
+  console.log("Début du parsing CSV");
   return new Promise((resolve, reject) => {
     parse(csvData, { delimiter: "," }, (err, output) => {
       if (err) {
+        console.error("Erreur lors du parsing CSV:", err);
         return reject(err);
       }
-      resolve(JSON.stringify(output)); // Transformer le tableau CSV en JSON (texte)
+      console.log(`CSV parsé avec succès, ${output.length} lignes trouvées`);
+      resolve(JSON.stringify(output));
     });
   });
 }
@@ -165,4 +189,10 @@ function parseCSVToText(csvData: any) {
 // Démarrer le serveur
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log("Configuration CORS activée");
+  console.log(
+    `Limite de requêtes : ${limiter.max} requêtes par ${
+      limiter.windowMs / 1000
+    } secondes`
+  );
 });
