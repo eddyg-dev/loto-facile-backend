@@ -8,6 +8,7 @@ import multer from "multer";
 import OpenAI from "openai";
 import pdfParse from "pdf-parse";
 import xlsx from "xlsx";
+import { versions } from "./version.constant";
 
 dotenv.config();
 
@@ -22,11 +23,9 @@ app.use(express.json({ limit: "20mb" })); // Limiter la taille du body à 20MB
 
 // Limitation des requêtes (rate limiting)
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 50, // Maximum de 50 requêtes par minute par IP
+  limit: (process.env.MAX_OPENAI_CALLS_PER_HOUR as unknown as number) || 50, // Maximum de 50 requêtes par minute par IP
   message: { error: "Too many requests, please try again later." },
 });
-app.use(limiter);
 
 // Middleware pour tout accepter avec CORS
 app.use(cors()); // Accepte toutes les requêtes cross-origin
@@ -52,8 +51,18 @@ app.use((req, res, next) => {
 app.get("/test", (req, res) => {
   res.send("GET request to the /test endpoint is successful!");
 });
+// Endpoint pour tester l'API
+app.get("/need-update", (req, res) => {
+  const currentVersion = req.query.version as string;
+  const needUpdate = versions.some(
+    (version) =>
+      version.version === currentVersion &&
+      version.minSupportedVersion !== currentVersion
+  );
+  res.json({ needUpdate });
+});
 
-app.post("/analyze", async (req, res) => {
+app.post("/analyze", limiter, async (req, res) => {
   try {
     console.log("Nouvelle requête d'analyse d'image reçue");
     const { base64Image, fileType } = req.body;
@@ -190,9 +199,4 @@ function parseCSVToText(csvData: any) {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   console.log("Configuration CORS activée");
-  console.log(
-    `Limite de requêtes : ${limiter.max} requêtes par ${
-      limiter.windowMs / 1000
-    } secondes`
-  );
 });
