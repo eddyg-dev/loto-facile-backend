@@ -2,7 +2,6 @@ import cors from "cors"; // Importer le middleware CORS
 import { parse } from "csv-parse"; // Pour traiter les CSV
 import dotenv from "dotenv";
 import express from "express";
-import rateLimit from "express-rate-limit";
 import fs from "fs";
 import multer from "multer";
 import OpenAI from "openai";
@@ -22,12 +21,6 @@ const upload = multer({ dest: "uploads/" });
 
 // Middleware pour analyser le JSON
 app.use(express.json({ limit: "20mb" })); // Limiter la taille du body à 20MB
-
-// Limitation des requêtes (rate limiting)
-const limiter = rateLimit({
-  limit: (process.env.MAX_OPENAI_CALLS_PER_HOUR as unknown as number) || 50, // Maximum de 50 requêtes par minute par IP
-  message: { error: "Too many requests, please try again later." },
-});
 
 // Middleware pour tout accepter avec CORS
 app.use(cors()); // Accepte toutes les requêtes cross-origin
@@ -67,7 +60,7 @@ app.get("/need-update", (req, res) => {
   res.json({ needUpdate });
 });
 
-app.post("/analyze", limiter, async (req, res) => {
+app.post("/analyze", async (req, res) => {
   try {
     console.log("Nouvelle requête d'analyse d'image reçue");
     const { base64Image, fileType } = req.body;
