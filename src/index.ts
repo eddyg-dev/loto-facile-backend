@@ -13,6 +13,8 @@ import { versions } from "./version.constant";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
+
 const port = process.env.PORT || 3000;
 
 const openai = new OpenAI();
@@ -39,6 +41,8 @@ console.log(`Prompt configuré : ${lotoPrompt ? "Oui" : "Non"}`);
 app.use((req, res, next) => {
   console.log(`Nouvelle requête reçue : ${req.method} ${req.path}`);
   const apiKey = req.headers["x-api-key"];
+  console.log(`API Key : ${apiKey}`);
+  console.log(`process API Key : ${process.env.API_SECRET}`);
   if (apiKey !== process.env.API_SECRET) {
     console.warn(`Tentative d'accès non autorisée avec la clé : ${apiKey}`);
     return res.status(403).json({ error: "Forbidden: Invalid API key" });
@@ -49,6 +53,7 @@ app.use((req, res, next) => {
 
 // Endpoint pour tester l'API
 app.get("/test", (req, res) => {
+  console.log("GET request to the /test endpoint is successful!");
   res.send("GET request to the /test endpoint is successful!");
 });
 // Endpoint pour tester l'API
@@ -94,9 +99,9 @@ app.post("/analyze", limiter, async (req, res) => {
         },
       ],
     });
-    console.log("Réponse reçue d'OpenAI");
 
     const result = response.choices[0]?.message?.content;
+    console.log("Réponse reçue d'OpenAI", result);
 
     // Si le résultat est sous forme de chaîne JSON, parser pour être sûr que c'est un objet JSON
     const parsedResult =
@@ -164,7 +169,7 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
     });
 
     const result = response.choices[0]?.message?.content;
-
+    console.log("Réponse reçue d'OpenAI", result);
     // Si le résultat est sous forme de chaîne JSON, parser pour être sûr que c'est un objet JSON
     const parsedResult =
       typeof result === "string" ? JSON.parse(result) : result;
