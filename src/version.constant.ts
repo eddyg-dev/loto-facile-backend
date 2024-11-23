@@ -1,18 +1,19 @@
-export const versions = [
+export const versions: Version[] = [
   {
-    version: "1.0.0",
-    minSupportedVersion: "1.0.0",
+    frontVersion: "1.0.0",
+    needUpdate: true,
   },
   {
-    version: "1.0.1",
-    minSupportedVersion: "1.0.1",
+    frontVersion: "1.0.1",
+    needUpdate: true,
   },
   {
-    version: "1.0.2",
-    minSupportedVersion: "1.0.0",
-  },
-  {
-    version: "1.1.0",
-    minSupportedVersion: "1.1.0",
+    frontVersion: "1.0.2",
+    needUpdate: false,
   },
 ];
+
+export interface Version {
+  frontVersion: string;
+  needUpdate: boolean;
+}
