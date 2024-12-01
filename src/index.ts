@@ -60,7 +60,7 @@ app.post("/analyze", async (req, res) => {
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Modèle GPT-4
+      model: process.env.OPENAI_MODEL || "gpt-4o", // Modèle GPT-4
       response_format: { type: "json_object" },
       messages: [
         {
@@ -126,7 +126,7 @@ app.post("/analyze-file", upload.single("file"), async (req, res) => {
 
     // Envoyer le texte extrait et le prompt à GPT-4 pour analyse
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
         {
