@@ -7,7 +7,7 @@ import multer from "multer";
 import OpenAI from "openai";
 import pdfParse from "pdf-parse";
 import xlsx from "xlsx";
-import { versions } from "./version.constant";
+import { supportedVersions } from "./version.constant";
 
 dotenv.config();
 
@@ -44,11 +44,16 @@ app.get("/test", (req, res) => {
 });
 // Endpoint pour tester l'API
 app.get("/need-update", (req, res) => {
-  const frontVersion = req.query.version as string;
-  const currentFontVersion = versions.find(
-    (version) => version.frontVersion === frontVersion
-  );
-  res.json({ needUpdate: currentFontVersion?.needUpdate });
+  const frontVersion = req.query.version;
+
+  if (!frontVersion) {
+    return res.status(400).json({
+      error: "Version parameter is required",
+    });
+  }
+
+  const isVersionSupported = supportedVersions.includes(frontVersion as string);
+  res.json({ needUpdate: !isVersionSupported });
 });
 
 app.post("/analyze", async (req, res) => {
