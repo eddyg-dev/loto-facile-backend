@@ -9,7 +9,7 @@ export const versions: Version[] = [
   },
   {
     frontVersion: "1.0.2",
-    needUpdate: false,
+    needUpdate: true,
   },
   {
     frontVersion: "1.0.3",
