@@ -1,1 +1,1 @@
-export const supportedVersions: string[] = ["1.0.6", "1.0.7"];
+export const supportedVersions: string[] = ["1.1.1"];
